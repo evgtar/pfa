@@ -1,0 +1,107 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <Name>PFA.Databases</Name>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectVersion>4.1</ProjectVersion>
+    <ProjectGuid>{77186ddb-e4a0-4fdc-8819-90529fc7a97e}</ProjectGuid>
+    <DSP>Microsoft.Data.Tools.Schema.Sql.Sql130DatabaseSchemaProvider</DSP>
+    <OutputType>Database</OutputType>
+    <RootPath>
+    </RootPath>
+    <RootNamespace>PFA.Database</RootNamespace>
+    <AssemblyName>PFA.Database</AssemblyName>
+    <ModelCollation>1033, CI</ModelCollation>
+    <DefaultFileStructure>BySchemaAndSchemaType</DefaultFileStructure>
+    <DeployToDatabase>True</DeployToDatabase>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <TargetLanguage>CS</TargetLanguage>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <SqlServerVerification>False</SqlServerVerification>
+    <IncludeCompositeObjects>True</IncludeCompositeObjects>
+    <TargetDatabaseSet>True</TargetDatabaseSet>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <OutputPath>bin\Release\</OutputPath>
+    <BuildScriptName>$(MSBuildProjectName).sql</BuildScriptName>
+    <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <DefineDebug>false</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <OutputPath>bin\Debug\</OutputPath>
+    <BuildScriptName>$(MSBuildProjectName).sql</BuildScriptName>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <DefineDebug>true</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">11.0</VisualStudioVersion>
+    <!-- Default to the v11.0 targets path if the targets file for the current VS version is not found -->
+    <SSDTExists Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets')">True</SSDTExists>
+    <VisualStudioVersion Condition="'$(SSDTExists)' == ''">11.0</VisualStudioVersion>
+  </PropertyGroup>
+  <Import Condition="'$(SQLDBExtensionsRefPath)' != ''" Project="$(SQLDBExtensionsRefPath)\Microsoft.Data.Tools.Schema.SqlTasks.targets" />
+  <Import Condition="'$(SQLDBExtensionsRefPath)' == ''" Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" />
+  <ItemGroup>
+    <Folder Include="Properties" />
+    <Folder Include="MSSQLServer" />
+    <Folder Include="SQLite" />
+    <Folder Include="MySQL" />
+    <Folder Include="MSSQLServer\StoredProcedures" />
+    <Folder Include="MSSQLServer\Functions" />
+  </ItemGroup>
+  <ItemGroup>
+    <Build Include="MSSQLServer\schema.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\AccountDel.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\AccountSetCheck.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\AccountsGet.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\AccountsInfoGet.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\AccountTypesGet.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\AssetsGet.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\CategoriesGet.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\CategoriesTreeGet.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\CategoryDel.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\CategoryUpd.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\CurrenciesGet.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\CurrencyAdd.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\CurrencyDel.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\CurrencyUpd.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\ExchangeRateAdd.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\ExchangeRateGet.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\ExchangeRateGetAll.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\InvestmentsGet.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\PayerDel.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\PayersGet.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\PayerUpd.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\RecalcAccount.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\ReportCostSharingGet.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\ReportIncomingsAndExpensesDetailedGet.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\ReportIncomingsAndExpensesGet.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\ReportPayeesGet.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\ReportPayersGet.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\ReportRevenueGet.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\SettingsGet.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\SettingUpd.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\TagsGet.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\TransactionAdd.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\TransactionDel.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\TransactionInfoGet.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\TransactionLogAdd.sql" />
+    <Build Include="MSSQLServer\StoredProcedures\TransactionsGet.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="MSSQLServer\init.sql" />
+  </ItemGroup>
+</Project>
