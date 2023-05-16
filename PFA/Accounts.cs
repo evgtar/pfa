@@ -12,7 +12,7 @@ namespace EvgTar.PFA
     {
         public DataSet ds = new DataSet();
         public Languages NLS { get; set; } = null;
-        public Core pfa_core = null;
+        public Core.Core pfa_core = null;
         public AccountsForm()
         {
             InitializeComponent();

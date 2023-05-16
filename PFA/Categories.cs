@@ -15,7 +15,7 @@ namespace EvgTar.PFA
         public Languages NLS = null;
         public bool retVal = false;
         public string category_id = "";
-        public Core pfa_core;
+        public Core.Core pfa_core;
 
         public CategoriesForm()
         {

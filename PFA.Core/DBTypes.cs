@@ -1,4 +1,4 @@
-﻿namespace EvgTar.PFA
+﻿namespace EvgTar.PFA.Core
 {
     public enum DBTypes { SQLite, MySQL, MSSQL };
 }

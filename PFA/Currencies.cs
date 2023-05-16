@@ -10,7 +10,7 @@ namespace EvgTar.PFA
 {
     public partial class CurrenciesForm : Form
     {
-        public Core pfa_core;
+        public Core.Core pfa_core;
         public DataSet ds = new DataSet();
         public Languages NLS = null;
 

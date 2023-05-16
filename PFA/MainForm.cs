@@ -12,6 +12,7 @@ using System.Net;
 using System.Threading;
 
 using EvgTar.PFA.Properties;
+using EvgTar.PFA.Core;
 
 namespace EvgTar.PFA
 {
@@ -20,7 +21,7 @@ namespace EvgTar.PFA
         Settings settings = new Settings(AppDomain.CurrentDomain.BaseDirectory + @"\pfa.xml");
         //public CFileLog log = null;
         private DataSet ds = new DataSet();
-        Core pfa_core;
+        Core.Core pfa_core;
         private Languages NLS;
         NotifyIcon ni = new NotifyIcon();
         ContextMenuStrip ni_CMS = new ContextMenuStrip();
@@ -45,7 +46,7 @@ namespace EvgTar.PFA
             string[] args = Environment.GetCommandLineArgs();
             if (args.Length > 1)
                 settings.DB = args[1];
-            pfa_core = new Core(settings.DB)
+            pfa_core = new(settings.DB)
             {
                 DBType = settings.DBType
             };
@@ -1526,7 +1527,7 @@ namespace EvgTar.PFA
                                 break;
                         }
                     }
-                    Core core = new Core(pfa_core.ConnectionString) { LogFileName = settings.LogFileName, Debug = settings.Debug, DBType = settings.DBType };
+                    Core.Core core = new(pfa_core.ConnectionString) { DBType = settings.DBType };
                     if (!crate_v_usd.Trim().Equals(""))
                     {
                         core.CurrencyRateUpdate("PLN", crate_v_usd);
@@ -1589,7 +1590,7 @@ namespace EvgTar.PFA
                 crate_v = res_v[5].Trim();
                 if (!crate_v.Equals(""))
                 {
-                    Core core = new Core(pfa_core.ConnectionString) { LogFileName = settings.LogFileName, Debug = settings.Debug, DBType = settings.DBType };
+                    Core.Core core = new(pfa_core.ConnectionString) { DBType = settings.DBType };
                     core.CurrencyRateUpdate("EUR", crate_v);
                 }
             }

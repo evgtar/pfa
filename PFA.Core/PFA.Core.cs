@@ -7,8 +7,9 @@ using System.Data;
 using System.Linq;
 using Serilog;
 using System.Configuration;
+using PFA.Core;
 
-namespace EvgTar.PFA
+namespace EvgTar.PFA.Core
 {    
     public class Core
     {
@@ -17,17 +18,15 @@ namespace EvgTar.PFA
         private string decimal_sign_change;
         public string LastError = "";
         public string LastSQL = "";
-        public string LogFileName = "pfa.log";
         public string DBName = "";
         public DBTypes DBType = DBTypes.SQLite;
         public string base_currency = "EUR";
         public bool Debug = false;
-        public Dictionary<string, string> Settings = new Dictionary<string, string>();
-        private Serilog.Core.Logger logger;
+        public Dictionary<string, string> Settings = new();
+        public Serilog.Core.Logger Logger { get; set; }
 
         public Core(string connectionString)
         {
-            logger = new LoggerConfiguration().ReadFrom.AppSettings().WriteTo.File(new EcsTextFormatter(), ConfigurationManager.AppSettings["serilog:write-to:File.path"] ?? @"PFA.Core.log").CreateLogger();
             ConnectionString = connectionString;
             decimal_sign = CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator;
             decimal_sign_change = decimal_sign.Equals(",") ? "." : ",";
@@ -47,35 +46,37 @@ namespace EvgTar.PFA
                 return false;
             bool nextStep = false;
             string sql = "";
-            DataSet ds = new DataSet();
+            DataSet ds = new();
+            IDBHelper dbhelper;
             switch (DBType)
             {
                 case DBTypes.SQLite:
-                    SQLite sqlite = new SQLite(ConnectionString);
-                    sql = "select  setting_name, setting_value from dbo.Settings order by setting_name";
-                    nextStep = sqlite.GetDataSet(ref ds, "Settings", sql);
-                    if (!nextStep)
-                        LastError = sqlite.LastError;
+                    dbhelper = new SQLiteHelper(ConnectionString);
+                    sql = "select  setting_name, setting_value from dbo.Settings order by setting_name";                    
                     break;
                 case DBTypes.MSSQL:
                     sql = "dbo.SettingsGet";
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
-                    nextStep = dbtools.GetDataSet(ref ds, "Settings", sql, new PropertyCollection());
-                    if (!nextStep)
-                        LastError = dbtools.LastError;
+                    dbhelper = new MSSQLServerHelper(ConnectionString);                    
+                    break;
+                default:
+                    dbhelper = null;
                     break;
             }
-            if (nextStep)
+            nextStep = dbhelper?.GetDataSet(ref ds, "Settings", sql, new PropertyCollection()) ?? false;
+            if (!nextStep)
+                LastError = dbhelper?.LastError ?? "";
+
+            if (nextStep && ds != null)
             {
                 for (int i = 0; i < ds.Tables["Settings"].Rows.Count; i++)
                 {
                     Settings.Add(ds.Tables["Settings"].Rows[i]["setting_name"].ToString(), ds.Tables["Settings"].Rows[i]["setting_value"].ToString());
                 }
-                base_currency = Settings.Where(d => d.Key.Equals("base_currency")).Select(d => d.Value).FirstOrDefault();
+                base_currency = Settings.Where(d => d.Key.Equals("base_currency", StringComparison.Ordinal)).Select(d => d.Value).FirstOrDefault();
             }
             else
             {
-                //new CFileLog(LogFileName).WriteLine(LastError + Environment.NewLine + sql);
+                Logger?.Error($"{LastError}{Environment.NewLine}{sql}");
             }
             return nextStep;
         }
@@ -92,7 +93,7 @@ namespace EvgTar.PFA
                     }
                     break;
                 case DBTypes.MSSQL:
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new MSSQLServerHelper(ConnectionString);
                     PropertyCollection sqlProp = new PropertyCollection
                     {
                         { "@SettingName", "" },
@@ -123,7 +124,7 @@ namespace EvgTar.PFA
             switch (DBType) // create backup
             {
                 case DBTypes.MySQL:
-                    MySQL mysql = new MySQL(ConnectionString);
+                    MySQLHelper mysql = new MySQLHelper(ConnectionString);
                     try
                     {
                         TransferCategoryID = Convert.ToInt64(mysql.GetValueSQL("select setting_value from Settings where setting_name = 'TransferCategoryID'"));
@@ -131,7 +132,7 @@ namespace EvgTar.PFA
                     catch { }
                     break;
                 case DBTypes.MSSQL:
-                    MSSQLUtils mssql = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper mssql = new MSSQLServerHelper(ConnectionString);
                     try
                     {
                         TransferCategoryID = Convert.ToInt64(mssql.GetValueSQL("select setting_value from Settings where setting_name = 'TransferCategoryID'"));
@@ -139,7 +140,7 @@ namespace EvgTar.PFA
                     catch { }
                     break;
                 case DBTypes.SQLite:
-                    SQLite sqlite = new SQLite(ConnectionString);
+                    SQLiteHelper sqlite = new SQLiteHelper(ConnectionString);
                     try
                     {
                         TransferCategoryID = Convert.ToInt64(sqlite.GetValueSQL("select setting_value from Settings where setting_name = 'TransferCategoryID'"));
@@ -163,7 +164,7 @@ namespace EvgTar.PFA
             switch (DBType) // create backup
             {
                 case DBTypes.MySQL:
-                    MySQL mysql = new MySQL(ConnectionString);
+                    MySQLHelper mysql = new(ConnectionString);
                     sql = "insert into ExchangeRates (cc_date, cc_from, cc_to, cc_rate, cc_status) values ('" + date.ToString("yyyy-MM-dd HH:mm:ss") + "', '" + CurrencyFrom + "', '" + CurrencyTo + "', " + rate.ToString().Replace(",", ".") + ", 0)";
                     if (mysql.ExecuteSQL(sql) == 1)
                     {
@@ -176,7 +177,7 @@ namespace EvgTar.PFA
                         return false;
                     break;
                 case DBTypes.MSSQL:
-                    MSSQLUtils mssql = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper mssql = new MSSQLServerHelper(ConnectionString);
                     PropertyCollection sqlProp = new PropertyCollection
                     {
                         { "@CurrencyCodeFrom", CurrencyFrom },
@@ -188,7 +189,7 @@ namespace EvgTar.PFA
                     mssql.ExecuteSQL(sql, sqlProp);
                     break;
                 case DBTypes.SQLite:
-                    SQLite sqlite = new SQLite(ConnectionString);
+                    SQLiteHelper sqlite = new SQLiteHelper(ConnectionString);
                     sql = "insert into ExchangeRates (cc_date, cc_from, cc_to, cc_rate, cc_status) values ('" + date.ToString("yyyy-MM-dd HH:mm:ss") + "', '" + CurrencyFrom + "', '" + CurrencyTo + "', " + rate.ToString().Replace(",", ".") + ", 0)";
                     if (sqlite.ExecuteSQL(sql) == 1)
                     {
@@ -212,7 +213,7 @@ namespace EvgTar.PFA
                 LastError = "Connection string is empty";
                 return false;
             }
-            SQLite sqlite = new SQLite(ConnectionString);
+            SQLiteHelper sqlite = new SQLiteHelper(ConnectionString);
             string sql;
             if (CreditPaymentID == 0)
             {
@@ -266,8 +267,7 @@ namespace EvgTar.PFA
                 switch (DBType)
                 {
                     default:
-                        SQLite sqlite = new SQLite("");
-                        if (sqlite.CreateDB(DBName))
+                        if (SQLiteHelper.CreateDB(DBName))
                         {
                             ret_val = true;
                             for (int i = 0; i < sql.Length; i++)
@@ -297,8 +297,6 @@ namespace EvgTar.PFA
                             }
                             */
                         }
-                        else
-                            LastError = sqlite.LastError;
                         break;
                 }
             }
@@ -346,27 +344,22 @@ namespace EvgTar.PFA
             bool retval;
             LastError = "";
             LastSQL = sql;
+            IDBHelper dbhelper;
             switch (DBType) // create backup
             {
                 case DBTypes.MySQL:
-                    MySQL mysql = new MySQL(ConnectionString);
-                    retval = mysql.GetDataSet(ref ds, TableName, sql);
-                    if (!retval)
-                        LastError = mysql.LastError;
+                    dbhelper = new MySQLHelper(ConnectionString);
                     break;
                 case DBTypes.MSSQL:
-                    MSSQLUtils mssql = new MSSQLUtils(ConnectionString);
-                    retval = mssql.GetDataSet(ref ds, TableName, sql);
-                    if (!retval)
-                        LastError = mssql.LastError;
+                    dbhelper = new MSSQLServerHelper(ConnectionString);                    
                     break;
                 default:
-                    SQLite sqlite = new SQLite(ConnectionString);
-                    retval = sqlite.GetDataSet(ref ds, TableName, sql);
-                    if (!retval)
-                        LastError = sqlite.LastError;
+                    dbhelper = new SQLiteHelper(ConnectionString);
                     break;
             }
+            retval = dbhelper.GetDataSet(ref ds, TableName, sql);
+            if (!retval)
+                LastError = dbhelper.LastError;
             return retval;
         }
         public int ExecuteSQL(string sql)
@@ -377,19 +370,19 @@ namespace EvgTar.PFA
             switch (DBType) // create backup
             {
                 case DBTypes.MySQL:
-                    MySQL mysql = new MySQL(ConnectionString);
+                    MySQLHelper mysql = new(ConnectionString);
                     retval = mysql.ExecuteSQL(sql);
                     if (!mysql.LastError.Equals(""))
                         LastError = mysql.LastError;
                     break;
                 case DBTypes.MSSQL:
-                    MSSQLUtils mssql = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper mssql = new MSSQLServerHelper(ConnectionString);
                     retval = mssql.ExecuteSQL(sql);
                     if (!mssql.LastError.Equals(""))
                         LastError = mssql.LastError;
                     break;
                 default:
-                    SQLite sqlite = new SQLite(ConnectionString);
+                    SQLiteHelper sqlite = new SQLiteHelper(ConnectionString);
                     retval = sqlite.ExecuteSQL(sql);
                     if (!sqlite.LastError.Equals(""))
                         LastError = sqlite.LastError;
@@ -405,19 +398,19 @@ namespace EvgTar.PFA
             switch (DBType) // create backup
             {
                 case DBTypes.MySQL:
-                    MySQL mysql = new MySQL(ConnectionString);
+                    MySQLHelper mysql = new(ConnectionString);
                     retval = mysql.GetValueSQL(sql);
                     if (!mysql.LastError.Equals(""))
                         LastError = mysql.LastError;
                     break;
                 case DBTypes.MSSQL:
-                    MSSQLUtils mssql = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper mssql = new MSSQLServerHelper(ConnectionString);
                     retval = mssql.GetValueSQL(sql);
                     if (!mssql.LastError.Equals(""))
                         LastError = mssql.LastError;
                     break;
                 default:
-                    SQLite sqlite = new SQLite(ConnectionString);
+                    SQLiteHelper sqlite = new SQLiteHelper(ConnectionString);
                     retval = sqlite.GetValueSQL(sql);
                     if (!sqlite.LastError.Equals(""))
                         LastError = sqlite.LastError;
@@ -433,19 +426,19 @@ namespace EvgTar.PFA
             switch (DBType) // create backup
             {
                 case DBTypes.MySQL:
-                    MySQL mysql = new MySQL(ConnectionString);
+                    MySQLHelper mysql = new(ConnectionString);
                     retval = mysql.GetCount(tableName, where);
                     if (!mysql.LastError.Equals(""))
                         LastError = mysql.LastError;
                     break;
                 case DBTypes.MSSQL:
-                    MSSQLUtils mssql = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper mssql = new MSSQLServerHelper(ConnectionString);
                     retval = mssql.GetCount(tableName, where);
                     if (!mssql.LastError.Equals(""))
                         LastError = mssql.LastError;
                     break;
                 default:
-                    SQLite sqlite = new SQLite(ConnectionString);
+                    SQLiteHelper sqlite = new SQLiteHelper(ConnectionString);
                     retval = sqlite.GetCount(tableName, where);
                     if (!sqlite.LastError.Equals(""))
                         LastError = sqlite.LastError;
@@ -460,19 +453,19 @@ namespace EvgTar.PFA
             switch (DBType) // create backup
             {
                 case DBTypes.MySQL:
-                    MySQL mysql = new MySQL(ConnectionString);
+                    MySQLHelper mysql = new(ConnectionString);
                     retval = mysql.BulkInsert(sql);
                     if (!mysql.LastError.Equals(""))
                         LastError = mysql.LastError;
                     break;
                 case DBTypes.MSSQL:
-                    MSSQLUtils mssql = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper mssql = new(ConnectionString);
                     retval = mssql.BulkInsert(sql);
                     if (!mssql.LastError.Equals(""))
                         LastError = mssql.LastError;
                     break;
                 default:
-                    SQLite sqlite = new SQLite(ConnectionString);
+                    SQLiteHelper sqlite = new(ConnectionString);
                     retval = sqlite.BulkInsert(sql);
                     if (!sqlite.LastError.Equals(""))
                         LastError = sqlite.LastError;
@@ -480,35 +473,7 @@ namespace EvgTar.PFA
             }
             return retval;
         }
-        public bool Export(string FileName)
-        {
-            bool ret_val = false;
-            switch (DBType) // create backup
-            {
-                case DBTypes.MySQL:
-
-                    break;
-                case DBTypes.MSSQL:
-
-                    break;
-                default:
-                    SQLite sqlite = new SQLite(ConnectionString);
-                    String retval = sqlite.ExportToMySQL(true);
-                    if (!sqlite.LastError.Equals(""))
-                        LastError = sqlite.LastError;
-                    else
-                    {
-                        using (StreamWriter sw = new StreamWriter(FileName, false, Encoding.UTF8))
-                        {
-                            sw.Write(retval);
-                            sw.Close();
-                        }
-                        ret_val = true;
-                    }
-                    break;
-            }
-            return ret_val;
-        }
+        
         public bool RecalcAccount(string account_id, string crate)
         {
             string sql = "";
@@ -516,15 +481,9 @@ namespace EvgTar.PFA
             LastError = "";
             switch (DBType)
             {
-                case DBTypes.SQLite:
-                    CoreSQLite sqliteCore = new CoreSQLite(ConnectionString);
-                    nextStep = sqliteCore.RecalcAccount(Int64.Parse(account_id), crate);
-                    if (!nextStep)
-                        LastError = sqliteCore.LastError;
-                    break;
                 case DBTypes.MSSQL:
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
-                    PropertyCollection sqlProp = new PropertyCollection
+                    MSSQLServerHelper dbtools = new(ConnectionString);
+                    PropertyCollection sqlProp = new()
                     {
                         { "@AccountId", account_id },
                         { "@CurrencyRate", crate.Replace(",", ".") }
@@ -533,6 +492,9 @@ namespace EvgTar.PFA
                     dbtools.ExecuteSQL(sql, sqlProp);
                     nextStep = true;
                     break;
+                default:
+                    throw new NotImplementedException($"DB Type {DBType} not implemented");
+
             }
             if (!nextStep)
             {
@@ -547,7 +509,8 @@ namespace EvgTar.PFA
             switch (DBType)
             {
                 case DBTypes.SQLite:
-                    string sql = "select trans_id, trans.account_id, trans.payer_id, currency_rate, date(trans_date) DT, account_name, pcat.category_name||' - '||cat.category_name CName, currency_code, (case when trans_type = 0 then amount_local else 0.00 end) deposit, (case when trans_type = 1 then amount_local else 0.00 end) withdraw, p.payer_name, trans_notes ";
+                    throw new NotImplementedException($"DB Type SQLite not implemented");
+                    /*string sql = "select trans_id, trans.account_id, trans.payer_id, currency_rate, date(trans_date) DT, account_name, pcat.category_name||' - '||cat.category_name CName, currency_code, (case when trans_type = 0 then amount_local else 0.00 end) deposit, (case when trans_type = 1 then amount_local else 0.00 end) withdraw, p.payer_name, trans_notes ";
                     sql += " from Transactions trans ";
                     sql += " left join Accounts acc on trans.account_id = acc.account_id ";
                     sql += " left join Categories cat on trans.category_id = cat.category_id ";
@@ -564,9 +527,9 @@ namespace EvgTar.PFA
                         sql += " and trans.asset_id = " + AssetId.ToString("G19");
                     sql += " order by trans_date";
                     nextStep = GetDataSet(ref ds, TableName, sql);
-                    break;
+                    break;*/
                 case DBTypes.MSSQL:
-                    PropertyCollection sqlProp = new PropertyCollection
+                    PropertyCollection sqlProp = new()
                     {
                         { "@TransFrom", TransactionFrom.ToString("yyyy-MM-dd 00:00:00") },
                         { "@TransTill", TransactionTill.ToString("yyyy-MM-dd 23:59:59") },
@@ -576,11 +539,13 @@ namespace EvgTar.PFA
                         { "@AssetId", AssetId },
                         { "@Tags", Tags }
                     };
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new(ConnectionString);
                     nextStep = dbtools.GetDataSet(ref ds, TableName, "dbo.TransactionsGet", sqlProp);
                     if (!nextStep)
                         LastError = dbtools.LastError;
                     break;
+                default:
+                    throw new NotImplementedException($"DB Type {DBType} not implemented");
             }
             return nextStep;
         }
@@ -592,7 +557,7 @@ namespace EvgTar.PFA
             switch (DBType)
             {
                 case DBTypes.SQLite:
-                    SQLite sqlite = new SQLite(ConnectionString);
+                    SQLiteHelper sqlite = new(ConnectionString);
                     sql = "select trans_id, trans_date, account_id, category_id, payer_id, trans_type, amount_local, currency_rate, amount_base, trans_notes from Transactions where trans_id=" + TransactionId.ToString("G19");
                     nextStep = sqlite.GetDataSet(ref ds, "TransactionInfo", sql);
                     if (!nextStep)
@@ -600,12 +565,8 @@ namespace EvgTar.PFA
                     break;
                 case DBTypes.MSSQL:
                     sql = "dbo.TransactionInfoGet";
-                    PropertyCollection sqlProp = new PropertyCollection
-                    {
-                        { "@TransactionId", TransactionId }
-                    };
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
-                    nextStep = dbtools.GetDataSet(ref ds, TableName, sql, sqlProp);
+                    MSSQLServerHelper dbtools = new(ConnectionString);
+                    nextStep = dbtools.GetDataSet(ref ds, TableName, sql, new PropertyCollection() { { "@TransactionId", TransactionId } });
                     if (!nextStep)
                         LastError = dbtools.LastError;
                     break;
@@ -644,11 +605,12 @@ namespace EvgTar.PFA
                 return false;
             return true;*/
             long trans_id = -1;
-            DataSet ds = new DataSet();
+            DataSet ds = new();
             switch (DBType)
             {
                 case DBTypes.SQLite:
-                    trans_id = new CoreSQLite(ConnectionString).TransactionAdd(TransactionID.ToString("G19"),
+                    throw new NotImplementedException();
+                    /*trans_id = new CoreSQLite(ConnectionString).TransactionAdd(TransactionID.ToString("G19"),
                         TransactionDate.ToString("yyyy-MM-dd HH:mm:ss"),
                         TransactionType,
                         CategoryID,
@@ -661,10 +623,10 @@ namespace EvgTar.PFA
                         AmountBase.ToString().Replace(",", "."),
                         Notes.Trim()
                         );
-                    break;
+                    break;*/
                 case DBTypes.MSSQL:
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
-                    PropertyCollection sqlProp = new PropertyCollection
+                    MSSQLServerHelper dbtools = new(ConnectionString);
+                    PropertyCollection sqlProp = new()
                     {
                         { "@TransactionId", TransactionID },
                         { "@TransactionDate", TransactionDate.ToString("yyyy-MM-dd HH:mm:ss") },
@@ -686,20 +648,14 @@ namespace EvgTar.PFA
                             trans_id = (long)ds.Tables["TransactionId"].Rows[0]["TransactionId"];
                         }
                         else
-                        {
-                            new CFileLog(LogFileName).WriteLine("No transaction ID returned");
-                            new CFileLog(LogFileName).DumpProp(sqlProp);
-                        }
+                            Logger?.Warning($"No transaction ID returned{Environment.NewLine}{LogHelper.DumpProp(sqlProp)}");
                     }
                     else
-                    {
-                        new CFileLog(LogFileName).WriteLine("Error add transaction: " + dbtools.LastError);
-                        new CFileLog(LogFileName).DumpProp(sqlProp);
-                    }
+                        Logger?.Error($"Error add transaction: {dbtools.LastError}{Environment.NewLine}{LogHelper.DumpProp(sqlProp)}");
 
                     break;
                 default:
-                    new CFileLog(LogFileName).WriteLine("Database type " + DBType.ToString() + " is not implemented yet");
+                    Logger?.Information($"Database type {DBType} is not implemented yet");
                     break;
             }
             return trans_id;
@@ -709,14 +665,14 @@ namespace EvgTar.PFA
             switch (DBType)
             {
                 case DBTypes.MSSQL:
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
-                    PropertyCollection sqlProp = new PropertyCollection
+                    MSSQLServerHelper dbtools = new(ConnectionString);
+                    PropertyCollection sqlProp = new()
                     {
                         { "@TransactionId", TransactionID },
                         { "@TransactionText", TransactionText.Trim() },
                         { "@TransactionSourceId", TransactionSourceId }
                     };
-                    new CFileLog(LogFileName).DumpProp(sqlProp);
+                    Logger?.Debug(LogHelper.DumpProp(sqlProp));
                     dbtools.ExecuteSQL("dbo.TransactionLogAdd", sqlProp);
                     break;
             }
@@ -734,12 +690,8 @@ namespace EvgTar.PFA
                     break;
                 case DBTypes.MSSQL:
                     sql = "dbo.TransactionDel";
-                    PropertyCollection sqlProp = new PropertyCollection
-                    {
-                        { "@TransactionId", TransactionId }
-                    };
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
-                    dbtools.ExecuteSQL(sql, sqlProp);
+                    MSSQLServerHelper dbtools = new(ConnectionString);
+                    dbtools.ExecuteSQL(sql, new PropertyCollection() { { "@TransactionId", TransactionId } });
                     nextStep = true;
                     break;
             }
@@ -756,7 +708,7 @@ namespace EvgTar.PFA
                     ret_val = GetCount("Transactions", where);
                     break;
                 case DBTypes.MSSQL:
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new MSSQLServerHelper(ConnectionString);
                     ret_val = dbtools.GetCount("Transactions", where);
                     break;
             }
@@ -774,7 +726,7 @@ namespace EvgTar.PFA
                     break;
                 case DBTypes.MSSQL:
                     sql = "select distinct year(trans_date) YR from Transactions order by 1";
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new(ConnectionString);
                     nextStep = dbtools.GetDataSet(ref ds, "Years", sql);
                     if (!nextStep)
                         LastError = dbtools.LastError;
@@ -795,7 +747,7 @@ namespace EvgTar.PFA
                     break;
                 case DBTypes.MSSQL:
                     sql = "dbo.AccountTypesGet";
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new(ConnectionString);
                     nextStep = dbtools.GetDataSet(ref ds, "AccountTypes", sql);
                     if (!nextStep)
                         LastError = dbtools.LastError;
@@ -816,12 +768,8 @@ namespace EvgTar.PFA
                     break;
                 case DBTypes.MSSQL:
                     sql = "dbo.AccountsGet";
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
-                    PropertyCollection sqlProp = new PropertyCollection
-                    {
-                        { "@AccountStatus", AllStatuses ? -2 : -1 }
-                    };
-                    nextStep = dbtools.GetDataSet(ref ds, TableName, sql, sqlProp);
+                    MSSQLServerHelper dbtools = new(ConnectionString);
+                    nextStep = dbtools.GetDataSet(ref ds, TableName, sql, new PropertyCollection { { "@AccountStatus", AllStatuses ? -2 : -1 } });
                     if (!nextStep)
                         LastError = dbtools.LastError;
                     break;
@@ -892,7 +840,7 @@ namespace EvgTar.PFA
                     {
                         { "@AccountId", AccountId }
                     };
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new MSSQLServerHelper(ConnectionString);
                     dbtools.ExecuteSQL(sql, sqlProp);
                     nextStep = true;
                     break;
@@ -914,8 +862,8 @@ namespace EvgTar.PFA
                     LastError = "������ ������ � ������ ������ �� ��������";
                     break;
                 case DBTypes.MSSQL:
-                    MSSQLUtils dbtools = new DBUtils.MSSQLUtils(ConnectionString);
-                    PropertyCollection sqlProp = new PropertyCollection
+                    MSSQLServerHelper dbtools = new(ConnectionString);
+                    PropertyCollection sqlProp = new()
                     {
                         { "@AccountId", account_id }
                     };
@@ -926,7 +874,7 @@ namespace EvgTar.PFA
             }
             if (!nextStep)
             {
-                new CFileLog(LogFileName).WriteLine(LastError + Environment.NewLine + sql);
+                Logger?.Error($"{LastError}{Environment.NewLine}{sql}");
             }
             return nextStep;
         }
@@ -946,7 +894,7 @@ namespace EvgTar.PFA
                     nextStep = GetDataSet(ref ds, "AccountsInfo", sql);
                     break;
                 case DBTypes.MSSQL:
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new MSSQLServerHelper(ConnectionString);
                     PropertyCollection sqlProp = new PropertyCollection
                     {
                         { "@AccountType", AccountType }
@@ -971,7 +919,7 @@ namespace EvgTar.PFA
                         amount = (double)GetValueSQL("select sum(base_balance) from Accounts where account_status > 0 and base_balance > 0");
                         break;
                     case DBTypes.MSSQL:
-                        MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                        MSSQLServerHelper dbtools = new MSSQLServerHelper(ConnectionString);
                         amount = (double)dbtools.GetValueSQL("select sum(base_balance) from Accounts where account_status > 0 and base_balance > 0");
                         break;
                 }
@@ -996,7 +944,7 @@ namespace EvgTar.PFA
                     nextStep = GetDataSet(ref ds, "AverageInfo", sql);
                     break;
                 case DBTypes.MSSQL:
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new MSSQLServerHelper(ConnectionString);
                     sql = "select sum(amount_base) Total from transactions t1 where trans_type = 1 and category_id not in (select exclude_id from ReportExcludes where report_id=1) and trans_date>=convert(datetime, '" + OnDate.ToString("yyyy-MM-dd") + " 00:00:00', 120)";
                     nextStep = dbtools.GetDataSet(ref ds, "AverageInfo", sql);
                     if (!nextStep)
@@ -1025,7 +973,7 @@ namespace EvgTar.PFA
                     nextStep = GetDataSet(ref ds, TableName, sql);
                     break;
                 case DBTypes.MSSQL:
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new MSSQLServerHelper(ConnectionString);
                     PropertyCollection sqlProp = new PropertyCollection
                     {
                         { "@AssetId", AssetId },
@@ -1055,7 +1003,7 @@ namespace EvgTar.PFA
                     break;
                 case DBTypes.MSSQL:
                     sql = "dbo.CategoriesGet";
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new MSSQLServerHelper(ConnectionString);
                     nextStep = dbtools.GetDataSet(ref ds, TableName, sql);
                     if (!nextStep)
                         LastError = dbtools.LastError;
@@ -1082,7 +1030,7 @@ namespace EvgTar.PFA
                     else
                         sql = "update Categories set category_name = '" + CategoryName + "', category_status=" + CategoryStatus.ToString() + " where category_id = " + CategoryId.ToString("G19");
 
-                    SQLite sqlite = new SQLite(ConnectionString);
+                    SQLiteHelper sqlite = new(ConnectionString);
                     nextStep = (sqlite.ExecuteSQL(sql) == 1);
                     break;
                 case DBTypes.MSSQL:
@@ -1094,27 +1042,17 @@ namespace EvgTar.PFA
                         { "@CategoryName", CategoryName },
                         { "@CategoryStatus", CategoryStatus }
                     };
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new MSSQLServerHelper(ConnectionString);
                     nextStep = dbtools.GetDataSet(ref ds, "CategoryId", "dbo.CategoryUpd", sqlProp);
                     if (nextStep && (ds.Tables["CategoryId"].Rows.Count > 0))
                     {
                         CategoryId = (long)ds.Tables["CategoryId"].Rows[0]["CategoryId"];
                         nextStep = (CategoryId > 0);
-                        if (!nextStep && Debug)
-                        {
-                            new CFileLog(LogFileName).DumpProp(sqlProp);
-                            new CFileLog(LogFileName).DumpTable(ds.Tables["CategoryId"]);
-
-                        }
-                        else
-                        {
-                            if (Debug)
-                            {
-                                new CFileLog(LogFileName).WriteLine(dbtools.LastError);
-                                new CFileLog(LogFileName).DumpProp(sqlProp);
-                            }
-                        }
+                        if (!nextStep)
+                            Logger?.Debug($"{LogHelper.DumpProp(sqlProp)}{Environment.NewLine}{LogHelper.DumpTable(ds.Tables["CategoryId"])}");
                     }
+                    else
+                        Logger?.Error($"{dbtools.LastError}{Environment.NewLine}{LogHelper.DumpProp(sqlProp)}");
                     break;
             }
             return nextStep;
@@ -1126,7 +1064,7 @@ namespace EvgTar.PFA
             switch (DBType)
             {
                 case DBTypes.SQLite:
-                    SQLite sqlite = new SQLite(ConnectionString);
+                    SQLiteHelper sqlite = new(ConnectionString);
                     string sql = "delete from Categories where pcategory_id = " + CategoryId.ToString("G19");
                     sqlite.ExecuteSQL(sql);
                     sql = "delete from Categories where category_id = " + CategoryId.ToString("G19");
@@ -1137,7 +1075,7 @@ namespace EvgTar.PFA
                     {
                         { "@CategoryId", CategoryId }
                     };
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new MSSQLServerHelper(ConnectionString);
                     dbtools.ExecuteSQL("dbo.CategoryDel", sqlProp);
                     nextStep = true;
                     break;
@@ -1158,7 +1096,7 @@ namespace EvgTar.PFA
                     break;
                 case DBTypes.MSSQL:
                     sql = "dbo.CategoriesTreeGet";
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new MSSQLServerHelper(ConnectionString);
                     nextStep = dbtools.GetDataSet(ref ds, "FCCategories", sql);
                     if (!nextStep)
                         LastError = dbtools.LastError;
@@ -1179,7 +1117,7 @@ namespace EvgTar.PFA
                     break;
                 case DBTypes.MSSQL:
                     sql = "select c.*, concat(cat2.category_name, ' - ', cat1.category_name) as category from Credits c left join Categories cat1 on cat1.category_id = c.credit_cat_id left join Categories cat2 on cat2.category_id = cat1.pcategory_id where credit_status > 0 order by credit_status, credit_name";
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new MSSQLServerHelper(ConnectionString);
                     nextStep = dbtools.GetDataSet(ref ds, TableName, sql);
                     if (!nextStep)
                         LastError = dbtools.LastError;
@@ -1206,7 +1144,7 @@ namespace EvgTar.PFA
                     break;
                 case DBTypes.MSSQL:
                     sql = "dbo.CurrenciesGet";
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new MSSQLServerHelper(ConnectionString);
                     PropertyCollection sqlProp = new PropertyCollection
                     {
                         { "@CurrencyStatus", AllStatuses ? -2 : -1 }
@@ -1232,7 +1170,7 @@ namespace EvgTar.PFA
                     break;
                 case DBTypes.MSSQL:
                     sql = "dbo.CurrencyAdd";
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new MSSQLServerHelper(ConnectionString);
                     PropertyCollection sqlProp = new PropertyCollection
                     {
                         { "@CurrencyCode", CurrencyCode },
@@ -1265,7 +1203,7 @@ namespace EvgTar.PFA
                     break;
                 case DBTypes.MSSQL:
                     sql = "dbo.CurrencyUpd";
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new MSSQLServerHelper(ConnectionString);
                     PropertyCollection sqlProp = new PropertyCollection
                     {
                         { "@CurrencyCode", CurrencyCode },
@@ -1292,7 +1230,7 @@ namespace EvgTar.PFA
                     nextStep = (ExecuteSQL(sql) == 1);
                     break;
                 case DBTypes.MSSQL:
-                    new MSSQLUtils(ConnectionString).ExecuteSQL("dbo.CurrencyDel", new PropertyCollection { { "@CurrencyCode", CurrencyCode } });
+                    new MSSQLServerHelper(ConnectionString).ExecuteSQL("dbo.CurrencyDel", new PropertyCollection { { "@CurrencyCode", CurrencyCode } });
                     nextStep = true;
                     break;
             }
@@ -1307,23 +1245,20 @@ namespace EvgTar.PFA
             switch (DBType)
             {
                 case DBTypes.SQLite:
-                    SQLite sqlite = new SQLite(ConnectionString);
+                    SQLiteHelper sqlite = new(ConnectionString);
                     nextStep = (sqlite.ExecuteSQL(sql) != 1);
                     if (!nextStep)
                         LastError = sqlite.LastError;
                     break;
                 case DBTypes.MSSQL:
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new MSSQLServerHelper(ConnectionString);
                     nextStep = (dbtools.ExecuteSQL(sql) != 1);
                     if (!nextStep)
                         LastError = dbtools.LastError;
                     break;
             }
             if (!nextStep)
-            {
-                if (Debug)
-                    new CFileLog(LogFileName).WriteLine(LastError + Environment.NewLine + sql);
-            }
+                Logger?.Debug($"{LastError}{Environment.NewLine}{sql}");                
             return nextStep;
         }
         public bool ExchangeRateGet(ref DataSet ds, string CurrencyCodeFrom, string CurrencyCodeTo, string TableName = "ExchangeRate")
@@ -1344,7 +1279,7 @@ namespace EvgTar.PFA
                         { "@CurrencyCodeFrom", CurrencyCodeFrom },
                         { "@CurrencyCodeTo", CurrencyCodeTo }
                     };
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new MSSQLServerHelper(ConnectionString);
                     nextStep = dbtools.GetDataSet(ref ds, TableName, sql, sqlProp);
                     if (!nextStep)
                         LastError = dbtools.LastError;
@@ -1369,7 +1304,7 @@ namespace EvgTar.PFA
                     {
                         { "@ExchangeRateStatus", ExchangeRateStatus }
                     };
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new MSSQLServerHelper(ConnectionString);
                     nextStep = dbtools.GetDataSet(ref ds, TableName, sql, sqlProp);
                     if (!nextStep)
                         LastError = dbtools.LastError;
@@ -1397,7 +1332,7 @@ namespace EvgTar.PFA
                     break;
                 case DBTypes.MSSQL:
                     sql = "dbo.PayersGet";
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new MSSQLServerHelper(ConnectionString);
                     PropertyCollection sqlProp = new PropertyCollection
                     {
                         { "@PayerStatus", AllStatuses ? -2 : -1 }
@@ -1425,7 +1360,7 @@ namespace EvgTar.PFA
                     break;
                 case DBTypes.MSSQL:
                     sql = "dbo.PayerUpd";
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new MSSQLServerHelper(ConnectionString);
                     PropertyCollection sqlProp = new PropertyCollection
                     {
                         { "@PayerId", PayerId },
@@ -1466,12 +1401,17 @@ namespace EvgTar.PFA
                     {
                         { "@PayerId", PayerId }
                     };
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new MSSQLServerHelper(ConnectionString);
                     dbtools.ExecuteSQL(sql, sqlProp);
                     nextStep = true;
                     break;
             }
             return nextStep;
+        }
+
+        public void Export(string fileName)
+        {
+            throw new NotImplementedException();
         }
 
         #region Reports
@@ -1532,7 +1472,7 @@ namespace EvgTar.PFA
                         { "@Year", Year },
                         { "@IsDetailed", IsDetaled ? 1 : 0 }
                     };
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new MSSQLServerHelper(ConnectionString);
                     nextStep = dbtools.GetDataSet(ref ds, TableName, "dbo.ReportCostSharingGet", sqlProp);
                     if (!nextStep)
                         LastError = dbtools.LastError;
@@ -1591,7 +1531,7 @@ namespace EvgTar.PFA
                     {
                         { "@Year", Year }
                     };
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new MSSQLServerHelper(ConnectionString);
                     nextStep = dbtools.GetDataSet(ref ds, TableName, "dbo.ReportIncomingsAndExpensesGet", sqlProp);
                     if (nextStep)
                     {
@@ -1600,9 +1540,12 @@ namespace EvgTar.PFA
                             sqlProp.Add("@DetailedMonth", DetailedMonth);
                             if (dbtools.GetDataSet(ref ds, "ReportDataMonthExpanded", "dbo.ReportIncomingsAndExpensesDetailedGet", sqlProp))
                             {
-                                DataRow[] r1 = ds.Tables["ReportDataMonthExpanded"].Select();
-                                for (int j = 0; j < r1.Length; j++)
-                                    ds.Tables["ReportData"].ImportRow(r1[j]);
+                                if (ds.Tables.Contains("ReportDataMonthExpanded"))
+                                {
+                                    DataRow[] r1 = ds.Tables["ReportDataMonthExpanded"].Select();
+                                    for (int j = 0; j < r1.Length; j++)
+                                        ds.Tables["ReportData"].ImportRow(r1[j]);
+                                }
                             }
                         }
                     }
@@ -1644,7 +1587,7 @@ namespace EvgTar.PFA
                     {
                         { "@Year", Year }
                     };
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new MSSQLServerHelper(ConnectionString);
                     nextStep = dbtools.GetDataSet(ref ds, TableName, "dbo.ReportRevenueGet", sqlProp);
                     if (!nextStep)
                         LastError = dbtools.LastError;
@@ -1681,7 +1624,7 @@ namespace EvgTar.PFA
                     {
                         { "@Year", Year }
                     };
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new MSSQLServerHelper(ConnectionString);
                     nextStep = dbtools.GetDataSet(ref ds, TableName, "dbo.ReportPayersGet", sqlProp);
                     if (!nextStep)
                         LastError = dbtools.LastError;
@@ -1718,7 +1661,7 @@ namespace EvgTar.PFA
                     {
                         { "@Year", Year }
                     };
-                    MSSQLUtils dbtools = new MSSQLUtils(ConnectionString);
+                    MSSQLServerHelper dbtools = new MSSQLServerHelper(ConnectionString);
                     nextStep = dbtools.GetDataSet(ref ds, TableName, "dbo.ReportPayeesGet", sqlProp);
                     if (!nextStep)
                         LastError = dbtools.LastError;
