@@ -6,9 +6,9 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 
-namespace PFA
+namespace EvgTar.PFA
 {
-    internal class Settings
+    public class Settings
     {
         private string _DB = "";
         private string _Language = "English";

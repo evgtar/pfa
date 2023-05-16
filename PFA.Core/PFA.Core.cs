@@ -5,10 +5,8 @@ using System.Globalization;
 using System.IO;
 using System.Data;
 using System.Linq;
-
-using SKTIT.Utils;
-using SKTIT.DBUtils;
-using System.Data.SqlTypes;
+using Serilog;
+using System.Configuration;
 
 namespace EvgTar.PFA
 {    
@@ -25,9 +23,11 @@ namespace EvgTar.PFA
         public string base_currency = "EUR";
         public bool Debug = false;
         public Dictionary<string, string> Settings = new Dictionary<string, string>();
+        private Serilog.Core.Logger logger;
 
         public Core(string connectionString)
         {
+            logger = new LoggerConfiguration().ReadFrom.AppSettings().WriteTo.File(new EcsTextFormatter(), ConfigurationManager.AppSettings["serilog:write-to:File.path"] ?? @"PFA.Core.log").CreateLogger();
             ConnectionString = connectionString;
             decimal_sign = CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator;
             decimal_sign_change = decimal_sign.Equals(",") ? "." : ",";
@@ -75,7 +75,7 @@ namespace EvgTar.PFA
             }
             else
             {
-                new CFileLog(LogFileName).WriteLine(LastError + Environment.NewLine + sql);
+                //new CFileLog(LogFileName).WriteLine(LastError + Environment.NewLine + sql);
             }
             return nextStep;
         }
@@ -536,7 +536,7 @@ namespace EvgTar.PFA
             }
             if (!nextStep)
             {
-                new CFileLog(LogFileName).WriteLine(LastError + Environment.NewLine + sql);
+                //new CFileLog(LogFileName).WriteLine(LastError + Environment.NewLine + sql);
             }
             return nextStep;
         }

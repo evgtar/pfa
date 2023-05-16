@@ -1,4 +1,6 @@
-﻿namespace EvgTar.PFA
+﻿using EvgTar.PFA.Properties;
+
+namespace EvgTar.PFA
 {
     partial class MainForm
     {
@@ -268,7 +270,7 @@
             // ToolStripMenuItemAccounts
             // 
             this.ToolStripMenuItemAccounts.Enabled = false;
-            this.ToolStripMenuItemAccounts.Image = global::EvgTar.PFA.Properties.Resources.accounts;
+            this.ToolStripMenuItemAccounts.Image = Resources.accounts;
             this.ToolStripMenuItemAccounts.Name = "ToolStripMenuItemAccounts";
             this.ToolStripMenuItemAccounts.ShortcutKeys = System.Windows.Forms.Keys.F2;
             this.ToolStripMenuItemAccounts.Size = new System.Drawing.Size(215, 22);
@@ -278,7 +280,7 @@
             // ToolStripMenuItemCategories
             // 
             this.ToolStripMenuItemCategories.Enabled = false;
-            this.ToolStripMenuItemCategories.Image = global::EvgTar.PFA.Properties.Resources.categories;
+            this.ToolStripMenuItemCategories.Image = Resources.categories;
             this.ToolStripMenuItemCategories.Name = "ToolStripMenuItemCategories";
             this.ToolStripMenuItemCategories.ShortcutKeys = System.Windows.Forms.Keys.F3;
             this.ToolStripMenuItemCategories.Size = new System.Drawing.Size(215, 22);
@@ -288,7 +290,7 @@
             // ToolStripMenuItemCurrencies
             // 
             this.ToolStripMenuItemCurrencies.Enabled = false;
-            this.ToolStripMenuItemCurrencies.Image = global::EvgTar.PFA.Properties.Resources.currencies;
+            this.ToolStripMenuItemCurrencies.Image = Resources.currencies;
             this.ToolStripMenuItemCurrencies.Name = "ToolStripMenuItemCurrencies";
             this.ToolStripMenuItemCurrencies.ShortcutKeys = System.Windows.Forms.Keys.F4;
             this.ToolStripMenuItemCurrencies.Size = new System.Drawing.Size(215, 22);
@@ -298,7 +300,7 @@
             // ToolStripMenuItemPayers
             // 
             this.ToolStripMenuItemPayers.Enabled = false;
-            this.ToolStripMenuItemPayers.Image = global::EvgTar.PFA.Properties.Resources.payers;
+            this.ToolStripMenuItemPayers.Image = Resources.payers;
             this.ToolStripMenuItemPayers.Name = "ToolStripMenuItemPayers";
             this.ToolStripMenuItemPayers.ShortcutKeys = System.Windows.Forms.Keys.F5;
             this.ToolStripMenuItemPayers.Size = new System.Drawing.Size(215, 22);
@@ -309,15 +311,6 @@
             // 
             this.toolStripMenuItem3.Name = "toolStripMenuItem3";
             this.toolStripMenuItem3.Size = new System.Drawing.Size(212, 6);
-            // 
-            // budgetToolStripMenuItem
-            // 
-            this.budgetToolStripMenuItem.Enabled = false;
-            this.budgetToolStripMenuItem.Name = "budgetToolStripMenuItem";
-            this.budgetToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F6;
-            this.budgetToolStripMenuItem.Size = new System.Drawing.Size(215, 22);
-            this.budgetToolStripMenuItem.Text = "Budget ...";
-            this.budgetToolStripMenuItem.Click += new System.EventHandler(this.budgetToolStripMenuItem_Click);
             // 
             // toolStripMenuItem6
             // 
@@ -413,7 +406,7 @@
             // 
             this.toolStripButtonAccounts.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.toolStripButtonAccounts.Enabled = false;
-            this.toolStripButtonAccounts.Image = global::EvgTar.PFA.Properties.Resources.accounts;
+            this.toolStripButtonAccounts.Image = Resources.accounts;
             this.toolStripButtonAccounts.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.toolStripButtonAccounts.Name = "toolStripButtonAccounts";
             this.toolStripButtonAccounts.Size = new System.Drawing.Size(23, 22);
@@ -424,7 +417,7 @@
             // 
             this.toolStripButtonCurrencies.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.toolStripButtonCurrencies.Enabled = false;
-            this.toolStripButtonCurrencies.Image = global::EvgTar.PFA.Properties.Resources.currencies;
+            this.toolStripButtonCurrencies.Image = Resources.currencies;
             this.toolStripButtonCurrencies.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.toolStripButtonCurrencies.Name = "toolStripButtonCurrencies";
             this.toolStripButtonCurrencies.Size = new System.Drawing.Size(23, 22);
@@ -435,7 +428,7 @@
             // 
             this.toolStripButtonCategories.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.toolStripButtonCategories.Enabled = false;
-            this.toolStripButtonCategories.Image = global::EvgTar.PFA.Properties.Resources.categories;
+            this.toolStripButtonCategories.Image = Resources.categories;
             this.toolStripButtonCategories.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.toolStripButtonCategories.Name = "toolStripButtonCategories";
             this.toolStripButtonCategories.Size = new System.Drawing.Size(23, 22);
@@ -446,7 +439,7 @@
             // 
             this.toolStripButtonPayers.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.toolStripButtonPayers.Enabled = false;
-            this.toolStripButtonPayers.Image = global::EvgTar.PFA.Properties.Resources.payers;
+            this.toolStripButtonPayers.Image = Resources.payers;
             this.toolStripButtonPayers.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.toolStripButtonPayers.Name = "toolStripButtonPayers";
             this.toolStripButtonPayers.Size = new System.Drawing.Size(23, 22);
@@ -733,7 +726,7 @@
             this.buttonTransfer.Enabled = false;
             this.buttonTransfer.FlatAppearance.BorderColor = System.Drawing.Color.Gray;
             this.buttonTransfer.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.buttonTransfer.Image = global::EvgTar.PFA.Properties.Resources.exchange;
+            this.buttonTransfer.Image = Resources.exchange;
             this.buttonTransfer.ImageAlign = System.Drawing.ContentAlignment.TopCenter;
             this.buttonTransfer.Location = new System.Drawing.Point(189, 3);
             this.buttonTransfer.Name = "buttonTransfer";
@@ -749,7 +742,7 @@
             this.buttonTransDelete.Enabled = false;
             this.buttonTransDelete.FlatAppearance.BorderColor = System.Drawing.Color.Gray;
             this.buttonTransDelete.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.buttonTransDelete.Image = global::EvgTar.PFA.Properties.Resources.remove;
+            this.buttonTransDelete.Image = Resources.remove;
             this.buttonTransDelete.ImageAlign = System.Drawing.ContentAlignment.TopCenter;
             this.buttonTransDelete.Location = new System.Drawing.Point(84, 3);
             this.buttonTransDelete.Name = "buttonTransDelete";
@@ -765,7 +758,7 @@
             this.buttonAddTrans.Enabled = false;
             this.buttonAddTrans.FlatAppearance.BorderColor = System.Drawing.Color.Gray;
             this.buttonAddTrans.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.buttonAddTrans.Image = global::EvgTar.PFA.Properties.Resources._new;
+            this.buttonAddTrans.Image = Resources._new;
             this.buttonAddTrans.ImageAlign = System.Drawing.ContentAlignment.TopCenter;
             this.buttonAddTrans.Location = new System.Drawing.Point(3, 3);
             this.buttonAddTrans.Name = "buttonAddTrans";

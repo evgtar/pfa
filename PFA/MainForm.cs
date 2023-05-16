@@ -11,14 +11,14 @@ using System.Xml;
 using System.Net;
 using System.Threading;
 
-using SKTIT.Utils;
+using EvgTar.PFA.Properties;
 
 namespace EvgTar.PFA
 {
     public partial class MainForm : Form
     {
         Settings settings = new Settings(AppDomain.CurrentDomain.BaseDirectory + @"\pfa.xml");
-        public CFileLog log = null;
+        //public CFileLog log = null;
         private DataSet ds = new DataSet();
         Core pfa_core;
         private Languages NLS;
@@ -28,7 +28,7 @@ namespace EvgTar.PFA
         bool init = true;
         int ReportID = 1;
         private string expand = "";
-        Thread get_currency_rates_thread = null;
+        Thread get_currency_rates_thread;
         public event EventHandler Executed;
         string LastError = "";
 
@@ -37,11 +37,11 @@ namespace EvgTar.PFA
             InitializeComponent();
             NLS = new Languages(settings.Language);
             ni_CMS.Items.Add(NLS.LNGetString("TextOpen", "Open"), null, new EventHandler(ni_DoubleClick));
-            ni_CMS.Items.Add(NLS.LNGetString("MainMenuExit", "Exit"), global::SKTIT.PFA.Properties.Resources.close, new EventHandler(exitToolStripMenuItem_Click));
+            ni_CMS.Items.Add(NLS.LNGetString("MainMenuExit", "Exit"), Resources.close, new EventHandler(exitToolStripMenuItem_Click));
             InitNLS();
             if (settings.LogFileName.Equals(""))
                 settings.LogFileName = AppDomain.CurrentDomain.BaseDirectory + "pfa.log";
-            log = new CFileLog(settings.LogFileName);
+            //log = new CFileLog(settings.LogFileName);
             string[] args = Environment.GetCommandLineArgs();
             if (args.Length > 1)
                 settings.DB = args[1];
@@ -128,9 +128,9 @@ namespace EvgTar.PFA
         }
         private void ni_DoubleClick(object sender, EventArgs e)
         {
-            this.Show();
+            Show();
             ni.Visible = false;
-            this.WindowState = settings.WindMaximized ? FormWindowState.Maximized : FormWindowState.Normal;
+            WindowState = settings.WindMaximized ? FormWindowState.Maximized : FormWindowState.Normal;
         }
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -168,8 +168,8 @@ namespace EvgTar.PFA
             }
             else
             {
-                if (settings.Debug)
-                    log.WriteLine(LastError);
+                //if (settings.Debug)
+                //    log.WriteLine(LastError);
             }
             nextStep = pfa_core.PayersGet(ref ds);
             if (nextStep)
@@ -184,8 +184,8 @@ namespace EvgTar.PFA
             }
             else
             {
-                if (settings.Debug)
-                    log.WriteLine(LastError);
+                //if (settings.Debug)
+                //    log.WriteLine(LastError);
             }
             nextStep = pfa_core.AssetsGet(ref ds);
             if (nextStep)
@@ -200,8 +200,8 @@ namespace EvgTar.PFA
             }
             else
             {
-                if (settings.Debug)
-                    log.WriteLine(LastError);
+                //if (settings.Debug)
+                //    log.WriteLine(LastError);
             }
             #endregion
 
@@ -513,10 +513,10 @@ namespace EvgTar.PFA
             }
             else
             {
-                if (settings.Debug)
-                {
-                    new CFileLog(settings.LogFileName).WriteLine(LastError);
-                }
+                //if (settings.Debug)
+                //{
+                //    new CFileLog(settings.LogFileName).WriteLine(LastError);
+                //}
             }
 
             DataGridViewCellStyle hst = new DataGridViewCellStyle(dataGridViewToday.ColumnHeadersDefaultCellStyle)
@@ -540,8 +540,8 @@ namespace EvgTar.PFA
             }
             else
             {
-                if (settings.Debug)
-                    log.WriteLine(pfa_core.LastError);
+                //if (settings.Debug)
+                //    log.WriteLine(pfa_core.LastError);
             }
             #endregion
 
@@ -633,10 +633,8 @@ namespace EvgTar.PFA
             }
             else
             {
-                if (settings.Debug)
-                {
-                    log.WriteLine(pfa_core.LastError);
-                }
+                //if (settings.Debug)
+                //    log.WriteLine(pfa_core.LastError);
             }
             DataGridViewCellStyle hst = new DataGridViewCellStyle(dataGridViewTransactions.ColumnHeadersDefaultCellStyle)
             {
@@ -923,17 +921,7 @@ namespace EvgTar.PFA
         private void toolStripButtonPayers_Click(object sender, EventArgs e)
         {
             ToolStripMenuItemPayers_Click(sender, e);
-        }
-        private void budgetToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            using (BudgetForm budget = new BudgetForm())
-            {
-                budget.ConnectionString = pfa_core.ConnectionString;
-                budget.settings = settings;
-                budget.NLS = NLS;
-                budget.ShowMe();
-            }
-        }
+        }        
         private void buttonTransfer_Click(object sender, EventArgs e)
         {
             using (TransferForm transfer = new TransferForm())
@@ -1052,10 +1040,10 @@ namespace EvgTar.PFA
             }
             else
             {
-                if (settings.Debug)
-                {
-                    log.WriteLine(pfa_core.LastError);
-                }
+                //if (settings.Debug)
+                //{
+                //    log.WriteLine(pfa_core.LastError);
+                //}
             };
         }
         private void ReportIncomingsAndExpenses()
@@ -1201,8 +1189,8 @@ namespace EvgTar.PFA
                     dataGridViewReports.Rows[TotalRowIndex].Cells["M" + ((m < 10) ? "0" : "") + m.ToString()].Value = ds.Tables["ReportData"].Compute("Sum([" + ("M" + ((m < 10) ? "0" : "") + m.ToString()) + "])", "");
                 #endregion
             }
-            else
-                log.WriteLine(LastError);
+            //else
+            //    log.WriteLine(LastError);
         }
         private void ReportPayees()
         {
@@ -1251,8 +1239,8 @@ namespace EvgTar.PFA
                     dataGridViewReports.Rows[TotalRowIndex].Cells["M" + ((m < 10) ? "0" : "") + m.ToString()].Value = ds.Tables["ReportData"].Compute("Sum([" + ("M" + ((m < 10) ? "0" : "") + m.ToString()) + "])", "");
                 #endregion
             }
-            else
-                log.WriteLine(LastError);
+            //else
+            //    log.WriteLine(LastError);
         }
         private double GetTotal()
         {
@@ -1423,7 +1411,7 @@ namespace EvgTar.PFA
             }
             catch (Exception xmlEx)
             {
-                log.WriteLine(xmlEx.ToString());
+                //log.WriteLine(xmlEx.ToString());
             }
         }
         /// <summary>�������� ���� ����������� �����</summary>
@@ -1544,7 +1532,7 @@ namespace EvgTar.PFA
                         core.CurrencyRateUpdate("PLN", crate_v_usd);
                         if (!core.AddCrossRate(DateTime.Now, "PLN", "USD", (float)Convert.ToDouble(crate_v_usd, System.Globalization.CultureInfo.InvariantCulture)))
                         {
-                            log.WriteLine(core.LastError);
+                            //log.WriteLine(core.LastError);
                         };
                     }
 
@@ -1552,19 +1540,19 @@ namespace EvgTar.PFA
                     {
                         if (!core.AddCrossRate(DateTime.Now, "PLN", "EUR", (float)Convert.ToDouble(crate_v_eur, System.Globalization.CultureInfo.InvariantCulture)))
                         {
-                            log.WriteLine(core.LastError);
+                            //log.WriteLine(core.LastError);
                         };
                     }
                 }
 
                 catch (Exception ex)
                 {
-                    log.WriteLine(ex.ToString());
+                    //log.WriteLine(ex.ToString());
                 }
             }
             catch (Exception xmlEx)
             {
-                log.WriteLine(xmlEx.ToString());
+                //log.WriteLine(xmlEx.ToString());
             }
         }
         /// <summary>�������� ���� ������� � ����</summary>
