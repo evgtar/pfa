@@ -579,16 +579,18 @@ namespace EvgTar.PFA
         {
             if (string.IsNullOrWhiteSpace(pfa_core.ConnectionString) || init)
                 return;
-            List<string> visibleColumns = new List<string>();
-            visibleColumns.Add("DT");
-            visibleColumns.Add("account_name");
-            visibleColumns.Add("currency_code");
-            visibleColumns.Add("CName");
-            visibleColumns.Add("deposit");
-            visibleColumns.Add("withdraw");
-            visibleColumns.Add("payer_name");
-            visibleColumns.Add("asset_name");
-            visibleColumns.Add("trans_notes");
+            List<string> visibleColumns = new()
+            {
+                "DT",
+                "account_name",
+                "currency_code",
+                "CName",
+                "deposit",
+                "withdraw",
+                "payer_name",
+                "asset_name",
+                "trans_notes"
+            };
 
             bool nextStep = pfa_core.TransactionsGet(
                 ref ds,
@@ -890,22 +892,20 @@ namespace EvgTar.PFA
 
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            using (AboutForm about = new AboutForm())
+            using AboutForm about = new()
             {
-                about.NLS = NLS;
-                about.Init();
-                about.ShowDialog();
-            }
+                NLS = NLS
+            };
+            about.Init();
+            about.ShowDialog();
         }
         private void ToolStripMenuItemPayers_Click(object sender, EventArgs e)
         {
-            using (Payers payers = new Payers())
-            {
-                payers.pfa_core = pfa_core;
-                payers.NLS = NLS;
-                payers.Init();
-                payers.ShowDialog();
-            }
+            using Payers payers = new();
+            payers.pfa_core = pfa_core;
+            payers.NLS = NLS;
+            payers.Init();
+            payers.ShowDialog();
         }
         private void toolStripButtonAccounts_Click(object sender, EventArgs e)
         {
@@ -1348,8 +1348,7 @@ namespace EvgTar.PFA
             GetCurrencyRatePLN();
             GetCurrencyRateUSD_EUR();
 
-            if (Executed != null)
-                Executed(this, null);
+            Executed?.Invoke(this, null);
         }
         private void GetCurrencyRateThreadExecuted(object sender, EventArgs e)
         {
@@ -1576,7 +1575,7 @@ namespace EvgTar.PFA
                 web_req.ContentType = "application/x-www-form-urlencoded";
                 HttpWebResponse web_res = (HttpWebResponse)web_req.GetResponse();
 
-                using (StreamReader sr = new StreamReader(web_res.GetResponseStream()))
+                using (StreamReader sr = new(web_res.GetResponseStream()))
                 {
                     xml_s = sr.ReadToEnd(); // ������ � ������ � ���������
                     sr.Close();
@@ -1584,7 +1583,7 @@ namespace EvgTar.PFA
                 web_res.Close();
             }
             catch { }
-            String[] res_v = xml_s.Split(';');
+            string[] res_v = xml_s.Split(';');
             if (res_v.Length > 6)
             {
                 crate_v = res_v[5].Trim();
